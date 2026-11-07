@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "retrievalbench"
+version = "0.1.0"
+description = "Offline retrieval evaluation with exact BM25 and golden metrics"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Midya Rahmani"}]
+keywords = ["retrieval", "bm25", "rag", "evaluation", "information-retrieval"]
+
+[project.urls]
+Repository = "https://github.com/midya8/retrievalbench"
+
+[tool.setuptools.packages.find]
+include = ["retrievalbench*"]
