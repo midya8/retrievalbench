@@ -1,0 +1,6 @@
+{"id": "q-bm25", "text": "how does BM25 score documents for a query"}
+{"id": "q-chunk", "text": "splitting long documents into overlapping chunks for retrieval"}
+{"id": "q-hybrid", "text": "combining lexical and vector search results"}
+{"id": "q-metrics", "text": "measuring retrieval quality with nDCG and recall"}
+{"id": "q-rerank", "text": "cross-encoder reranking of retrieved candidates"}
+{"id": "q-ground", "text": "grounding language model answers on retrieved passages"}
