@@ -1,0 +1,8 @@
+{"query_id": "q-bm25", "doc_id": "bm25-ranking", "relevance": 2}
+{"query_id": "q-chunk", "doc_id": "chunking", "relevance": 2}
+{"query_id": "q-hybrid", "doc_id": "hybrid-search", "relevance": 2}
+{"query_id": "q-hybrid", "doc_id": "embeddings", "relevance": 1}
+{"query_id": "q-metrics", "doc_id": "evaluation-metrics", "relevance": 2}
+{"query_id": "q-metrics", "doc_id": "chunking", "relevance": 1}
+{"query_id": "q-rerank", "doc_id": "reranking", "relevance": 2}
+{"query_id": "q-ground", "doc_id": "hallucination", "relevance": 2}
