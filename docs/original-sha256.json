@@ -1,0 +1,8 @@
+{
+  "README.md": "e2b6e8205c2b7eeb8f8bc04d6f44d5545d9ddc27bc3f535f076ae4f7d0f55cee",
+  "examples/data/corpus.jsonl": "03e5f6cd06c109b9c708e98f2aedfe6e84d7e18af5fe584b502f4c496e215ba4",
+  "examples/data/qrels.jsonl": "b6f43029b90cec96e1ec5f38dfe241922c175c55f984fa8ef9857e4be82771c2",
+  "examples/data/queries.jsonl": "862d4fa1e09c4145657b3b1710da467a722bc88a607c04b57cbd903fe325ffc8",
+  "examples/demo.sh": "1de2653c16e5a3b038ecae00fa1ae7a6e6578fdc071e4dbbf454cfdb19e37856",
+  "tests/test_retrievalbench.py": "b0ad2888c45252c29411487b426b2b020d749dd410d6e5fd422bac18d6563639"
+}
