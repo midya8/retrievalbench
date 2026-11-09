@@ -1,0 +1,75 @@
+{
+  "averages": {
+    "ndcg_at_3": 1.0,
+    "precision_at_3": 0.4444444444444444,
+    "recall_at_3": 1.0,
+    "reciprocal_rank": 1.0
+  },
+  "corpus_size": 19,
+  "k": 3,
+  "parameters": {
+    "b": 0.75,
+    "chunk_overlap": 5,
+    "chunk_tokens": 30,
+    "k1": 1.5
+  },
+  "queries": [
+    {
+      "ndcg_at_3": 1.0,
+      "precision_at_3": 0.3333333333333333,
+      "query_id": "q-bm25",
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "relevant_count": 1,
+      "retrieved_count": 2
+    },
+    {
+      "ndcg_at_3": 1.0,
+      "precision_at_3": 0.3333333333333333,
+      "query_id": "q-chunk",
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "relevant_count": 1,
+      "retrieved_count": 3
+    },
+    {
+      "ndcg_at_3": 1.0,
+      "precision_at_3": 0.3333333333333333,
+      "query_id": "q-ground",
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "relevant_count": 1,
+      "retrieved_count": 3
+    },
+    {
+      "ndcg_at_3": 1.0,
+      "precision_at_3": 0.6666666666666666,
+      "query_id": "q-hybrid",
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "relevant_count": 2,
+      "retrieved_count": 3
+    },
+    {
+      "ndcg_at_3": 1.0,
+      "precision_at_3": 0.6666666666666666,
+      "query_id": "q-metrics",
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "relevant_count": 2,
+      "retrieved_count": 2
+    },
+    {
+      "ndcg_at_3": 1.0,
+      "precision_at_3": 0.3333333333333333,
+      "query_id": "q-rerank",
+      "recall_at_3": 1.0,
+      "reciprocal_rank": 1.0,
+      "relevant_count": 1,
+      "retrieved_count": 2
+    }
+  ],
+  "query_count": 6,
+  "schema_version": 1,
+  "tool": "retrievalbench 0.1.0"
+}
