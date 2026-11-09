@@ -81,40 +81,42 @@ def load_qrels(path: str | Path) -> dict[str, dict[str, int]]:
             raise ValueError(f"{path}: every qrel needs a non-empty doc_id")
         if not isinstance(relevance, int) or isinstance(relevance, bool) or relevance < 0:
             raise ValueError(f"{path}:{query_id}: relevance must be a non-negative integer")
+        if doc_id in qrels.get(query_id, {}):
+            raise ValueError(f"{path}: duplicate qrel pair {query_id!r}, {doc_id!r}")
         qrels.setdefault(query_id, {})[doc_id] = relevance
     if not qrels:
         raise ValueError(f"{path}: no relevance judgments found")
     return qrels
 
 
-def chunk_documents(
-    documents: list[tuple[str, str]],
-    *,
-    max_tokens: int = 120,
-    overlap: int = 20,
-) -> list[tuple[str, str]]:
-    """Split documents into token-window chunks for finer retrieval units.
+def chunk_records(documents: list[tuple[str, str]], *, max_tokens: int = 120, overlap: int = 20) -> list[dict]:
+    """Windows with explicit parent identity and half-open token offsets.
 
-    Each chunk id is `<doc_id>#c<n>`; documents that fit in one window keep
-    their original id so qrels can target either form. Overlap must stay
-    below max_tokens so every window makes progress.
+    Preserve the historical trailing overlapping windows, including a final
+    window wholly covered by its predecessor. Identity is never parsed by '#c'.
     """
-    if max_tokens <= 0:
-        raise ValueError("max_tokens must be positive")
-    if overlap < 0 or overlap >= max_tokens:
+    if isinstance(max_tokens, bool) or not isinstance(max_tokens, int) or max_tokens <= 0:
+        raise ValueError("max_tokens must be a positive integer")
+    if isinstance(overlap, bool) or not isinstance(overlap, int) or not 0 <= overlap < max_tokens:
         raise ValueError("overlap must be in [0, max_tokens)")
-    chunks: list[tuple[str, str]] = []
+    chunks, seen, parents = [], set(), set()
     for doc_id, text in documents:
+        if not isinstance(doc_id, str) or not doc_id or doc_id in parents:
+            raise ValueError("document ids must be nonempty and unique")
+        parents.add(doc_id)
         terms = tokenize(text)
-        if len(terms) <= max_tokens:
-            chunks.append((doc_id, text))
-            continue
-        step = max_tokens - overlap
-        position = 0
-        index = 0
-        while position < len(terms):
-            window = terms[position:position + max_tokens]
-            chunks.append((f"{doc_id}#c{index}", " ".join(window)))
-            index += 1
-            position += step
+        starts = [0] if len(terms) <= max_tokens else range(0, len(terms), max_tokens-overlap)
+        for i, start in enumerate(starts):
+            end = min(len(terms), start+max_tokens)
+            chunk_id = doc_id if len(terms) <= max_tokens else f"{doc_id}#c{i}"
+            if chunk_id in seen:
+                raise ValueError("chunk id collision; rename the conflicting document")
+            seen.add(chunk_id)
+            chunks.append({"id":chunk_id,"parent":doc_id,"start":start,"end":end,
+                           "text":text if len(terms)<=max_tokens else " ".join(terms[start:end])})
     return chunks
+
+
+def chunk_documents(documents: list[tuple[str, str]], *, max_tokens: int = 120, overlap: int = 20) -> list[tuple[str, str]]:
+    """Historical token windows; use chunk_records for unambiguous parent ids."""
+    return [(r["id"],r["text"]) for r in chunk_records(documents,max_tokens=max_tokens,overlap=overlap)]
