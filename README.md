@@ -1,71 +1,46 @@
 # RetrievalBench
 
-Offline retrieval evaluation for RAG and search pipelines.
+A cutoff is a policy. Inspect every BM25 term contribution, chunk/parent decision and relevance-metric gain in a dependency-free offline retrieval evaluator.
 
-RetrievalBench builds an exact Okapi BM25 index over a local JSONL corpus, ranks golden queries, and scores the rankings against relevance judgments with recall@k, precision@k, MRR and graded nDCG@k. It is dependency-free and runs fully offline, so retrieval quality becomes a reproducible CI gate instead of a vibes check.
+[Live retrieval inspector](https://midya8.github.io/retrievalbench/) · [Evidence contract, sources and limits](EVIDENCE.md) · [Original README](docs/original-readme.md)
 
-## Why
+## Complete arithmetic, not a relevance oracle
 
-Retrieval changes - chunk sizes, overlap, index parameters, document edits - silently shift which passages a pipeline surfaces. RetrievalBench turns those changes into measurable regressions:
+The original CLI builds an exhaustive BM25 index over JSONL documents, evaluates golden queries against graded judgments and gates precision/recall/MRR/nDCG. A new bounded audit exposes the complete ranked list, query-term contributions, corpus statistics, token windows, parent collapse and per-rank/ideal DCG rows. Independent scalar JavaScript recomputes the entire report in an editable static inspector; no API, model or stored-score lookup.
 
-- exact BM25 (no pruning, no ANN approximation), so scores and rankings are fully deterministic and diffable;
-- token-window chunking with overlap, with chunk hits collapsed back to their parent document so qrels stay at document granularity;
-- per-query and macro-averaged recall@k, precision@k, MRR and nDCG@k from graded qrels;
-- quality gates (`--min-recall`, `--min-precision`, `--min-mrr`, `--min-ndcg`) that fail CI when a change drops retrieval quality;
-- JSON reports for tooling and Markdown reports for CI job summaries.
+Taking k chunks before collapse can return fewer than k parents. Scanning until k distinct parents is a different budget. Both are shown on the same fixed ranking. Whole-document versus chunk indexing also changes N, df and average length, so it is not an isolated chunk-quality effect. Zero-score units remain eligible. Judgments are illustrative, not a general retrieval benchmark.
 
-## Commands
-
-Evaluate a corpus against golden queries and qrels:
+## Run
 
 ```bash
-python3 -m retrievalbench evaluate \
-  --corpus examples/data/corpus.jsonl \
-  --queries examples/data/queries.jsonl \
-  --qrels examples/data/qrels.jsonl \
-  -k 3 --json eval.json --markdown eval.md
+python -m retrievalbench evaluate --corpus examples/data/corpus.jsonl \
+  --queries examples/data/queries.jsonl --qrels examples/data/qrels.jsonl \
+  -k 3 --min-recall 1 --json eval.json --markdown eval.md
+python -m retrievalbench search --corpus examples/data/corpus.jsonl -k 3 'BM25 relevance'
+python -m retrievalbench audit --spec examples/audit.json --json audit.json
 ```
 
-Gate on retrieval quality:
+Chunked evaluation adds `--chunk-tokens 30 --chunk-overlap 5`. The default CLI retains k-units-before-collapse; it is not silently changed to the distinct-parent alternative. Tune `--k1` and `--b`. Gates: `--min-recall`, `--min-precision`, `--min-mrr`, `--min-ndcg`. All gates compare full-precision values, while terminal/Markdown display rounds.
+
+Data remains JSONL: corpus/query records have id/text; qrels have query_id/doc_id/relevance (default 1, nonnegative integer). Duplicate ids/pairs are errors. See the original README for the full command examples and formats.
+
+## Verified and preserved
+
+- 68 Python tests retain all 42 originals. 35 complete reports include all six original queries under whole/chunk indexing and 23 explicit controls.
+- Independent JavaScript compares 27,694 numeric and 12,052 other scalar values. Three Node/actual-Chrome tests check every ranked unit, contribution/metric row, source text, both policies, edits/export and 320/390/1280 containment.
+- Python 3.10-3.13 regeneration and isolated installed-wheel verification with eight module origins.
+- Original corpus, queries, qrels, demo and tests unchanged; original whole/chunked evaluation JSON remains byte-identical. Hashes and original artifacts are retained under docs/.
 
 ```bash
-python3 -m retrievalbench evaluate \
-  --corpus corpus.jsonl --queries queries.jsonl --qrels qrels.jsonl \
-  -k 5 --min-recall 0.9 --min-mrr 0.8
+python -m unittest discover -s tests -v
+bash examples/demo.sh
+PYTHONPATH=. python tools/build_audits.py
+npm test  # Node 22+ and Chrome; CHROME_BIN can select Chrome
+bash tools/wheel_smoke.sh
 ```
 
-Evaluate chunked indexing (chunks collapse to their parent document for scoring):
+## Explicit fixes and limits
 
-```bash
-python3 -m retrievalbench evaluate \
-  --corpus corpus.jsonl --queries queries.jsonl --qrels qrels.jsonl \
-  -k 5 --chunk-tokens 120 --chunk-overlap 20
-```
+Parent ids are carried as data rather than split on '#c'. Generated-id collisions, duplicate qrels/rankings and nonfinite parameters/gates are rejected. High-grade nDCG and very large finite k1 avoid intermediate overflow; the inspector deliberately uses narrower input bounds. Original overlapping tail windows and original macro skip policy remain.
 
-Run one ad-hoc query:
-
-```bash
-python3 -m retrievalbench search --corpus corpus.jsonl -k 5 "hybrid lexical and vector search"
-```
-
-Tune the ranking function with `--k1` (term-frequency saturation) and `--b` (length normalization).
-
-## Data formats
-
-All inputs are JSONL, one object per line.
-
-- **Corpus:** `{"id": "doc-1", "text": "..."}` (`doc_id` also accepted)
-- **Queries:** `{"id": "q-1", "text": "..."}` (`query_id` also accepted)
-- **Qrels:** `{"query_id": "q-1", "doc_id": "doc-1", "relevance": 2}` - non-negative integer grades, `relevance` defaults to 1, grades above 0 count as relevant and nDCG uses the grade
-
-## Verification
-
-- 42 unit tests cover tokenization, BM25 scoring edge cases (ties, empty documents, unknown terms, length normalization), JSONL loading validation, chunking windows and overlap, every metric, report escaping and the CLI including gates and chunked evaluation.
-- `bash examples/demo.sh` runs fully offline against a small AI/ML corpus and asserts the aggregate metrics, the Markdown report, chunked-evaluation parent collapsing, and both sides of the quality gates.
-- CI runs the same suite across Python 3.10-3.13.
-
-BM25 is a lexical baseline: it measures term-matching retrieval, not embedding quality. Graded qrels are illustrative judgments for the example corpus, not a research benchmark.
-
-## License
-
-MIT
+Lexical BM25 is prior work, not embedding-quality evidence. Positive IDF, linear repeated-query weighting, tokenization, tie breaks, gain/discount, requested-k denominator, unjudged-as-zero and query exclusions are stated in [EVIDENCE.md](EVIDENCE.md). No Lucene/trec_eval parity, new-algorithm or quality-improvement claim. Browser parity uses a bounded ASCII profile, not unrestricted Unicode. MIT license.

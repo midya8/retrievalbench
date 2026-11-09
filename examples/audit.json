@@ -1,0 +1,33 @@
+{
+  "b": 0.75,
+  "budget": "chunks",
+  "documents": [
+    {
+      "id": "a",
+      "text": "apple apple apple orchard apple apple fruit apple"
+    },
+    {
+      "id": "b",
+      "text": "apple pear"
+    },
+    {
+      "id": "c",
+      "text": "pear citrus lemon"
+    },
+    {
+      "id": "empty",
+      "text": "!!!"
+    }
+  ],
+  "grades": {
+    "a": 1,
+    "b": 3,
+    "c": 0
+  },
+  "k": 3,
+  "k1": 1.5,
+  "overlap": 1,
+  "query": "apple",
+  "unit": "chunks",
+  "window": 3
+}

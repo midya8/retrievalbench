@@ -9,6 +9,13 @@ from collections import Counter
 TOKEN = re.compile(r"[A-Za-z0-9]+")
 
 
+def _finite(value) -> bool:
+    try:
+        return not isinstance(value, bool) and math.isfinite(value)
+    except (TypeError, OverflowError):
+        return False
+
+
 def tokenize(text: str) -> list[str]:
     """Lowercase alphanumeric tokenization, deterministic across platforms."""
     return TOKEN.findall(text.lower())
@@ -23,9 +30,9 @@ class BM25Index:
     """
 
     def __init__(self, documents: list[tuple[str, str]], *, k1: float = 1.5, b: float = 0.75):
-        if k1 <= 0:
+        if not _finite(k1) or k1 <= 0:
             raise ValueError("k1 must be positive")
-        if not 0 <= b <= 1:
+        if not _finite(b) or not 0 <= b <= 1:
             raise ValueError("b must be in [0, 1]")
         self.k1 = k1
         self.b = b
@@ -33,7 +40,11 @@ class BM25Index:
         self._term_freqs: list[Counter[str]] = []
         self._lengths: list[int] = []
         document_frequency: Counter[str] = Counter()
+        seen: set[str] = set()
         for doc_id, text in documents:
+            if not isinstance(doc_id, str) or not doc_id or doc_id in seen:
+                raise ValueError("document ids must be nonempty and unique")
+            seen.add(doc_id)
             terms = tokenize(text)
             if not terms:
                 continue
@@ -47,8 +58,8 @@ class BM25Index:
             raise ValueError("corpus has no non-empty documents")
         self._avg_length = sum(self._lengths) / len(self._lengths)
         total = len(self.doc_ids)
-        # Robertson/Spärck Jones IDF, floored at zero so very common terms
-        # never drag a document's score down.
+        # Positive log1p IDF variant. The +1 inside log keeps this positive;
+        # max(0) is redundant for valid N/df, not a floor of raw RSJ log odds.
         self._idf = {
             term: max(0.0, math.log((total - df + 0.5) / (df + 0.5) + 1.0))
             for term, df in document_frequency.items()
@@ -66,7 +77,11 @@ class BM25Index:
             tf = counts.get(term, 0)
             if tf == 0:
                 continue
-            score += self._idf.get(term, 0.0) * (tf * (self.k1 + 1.0)) / (tf + self.k1 * length_norm)
+            if self.k1 > 1e150:
+                saturation = tf * (1.0 + 1.0 / self.k1) / (tf / self.k1 + length_norm)
+                score += self._idf.get(term, 0.0) * saturation
+            else:
+                score += self._idf.get(term, 0.0) * (tf * (self.k1 + 1.0)) / (tf + self.k1 * length_norm)
         return score
 
     def rank(self, query: str, *, top_k: int = 10) -> list[tuple[str, float]]:
@@ -74,7 +89,7 @@ class BM25Index:
 
         Ties break by document id so rankings are deterministic.
         """
-        if top_k <= 0:
+        if isinstance(top_k, bool) or not isinstance(top_k, int) or top_k <= 0:
             raise ValueError("top_k must be positive")
         terms = tokenize(query)
         scored = sorted(

@@ -44,7 +44,7 @@ def render_markdown(result: dict, *, corpus_size: int) -> str:
         lines.append(f"| {_metric_label(name)} | {averages[name]:.4f} |")
     lines.extend(["", "## Per-query results", ""])
     lines.append("| Query | " + " | ".join(_metric_label(name) for name in sorted(averages)) + " | Relevant | Retrieved |")
-    lines.append("|---|---|")
+    lines.append("|" + "---|" * (len(averages)+3))
     for row in result["queries"]:
         cells = " | ".join(f"{row[name]:.4f}" for name in sorted(averages))
         lines.append(f"| {_md_cell(row['query_id'])} | {cells} | {row['relevant_count']} | {row['retrieved_count']} |")

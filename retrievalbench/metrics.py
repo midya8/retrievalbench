@@ -5,16 +5,23 @@ from __future__ import annotations
 import math
 
 
+def _ranking(ranked: list[str], k: int | None = None) -> None:
+    if k is not None and (isinstance(k, bool) or not isinstance(k, int) or k <= 0):
+        raise ValueError("k must be a positive integer")
+    if len(set(ranked)) != len(ranked):
+        raise ValueError("rankings must contain unique document ids")
+
+
 def precision_at_k(ranked: list[str], relevant: set[str], k: int) -> float:
     """Share of the top-k results that are relevant (grade > 0)."""
-    if k <= 0:
-        raise ValueError("k must be positive")
+    _ranking(ranked, k)
     hits = sum(1 for doc_id in ranked[:k] if doc_id in relevant)
     return hits / k
 
 
 def recall_at_k(ranked: list[str], relevant: set[str], k: int) -> float:
     """Share of all relevant documents found in the top-k results."""
+    _ranking(ranked, k)
     if not relevant:
         return 0.0
     hits = sum(1 for doc_id in ranked[:k] if doc_id in relevant)
@@ -23,6 +30,7 @@ def recall_at_k(ranked: list[str], relevant: set[str], k: int) -> float:
 
 def reciprocal_rank(ranked: list[str], relevant: set[str]) -> float:
     """1/rank of the first relevant result, 0 when none appears."""
+    _ranking(ranked)
     for position, doc_id in enumerate(ranked, 1):
         if doc_id in relevant:
             return 1.0 / position
@@ -31,12 +39,20 @@ def reciprocal_rank(ranked: list[str], relevant: set[str]) -> float:
 
 def ndcg_at_k(ranked: list[str], grades: dict[str, int], k: int) -> float:
     """Normalized discounted cumulative gain at k with graded relevance."""
-    if k <= 0:
-        raise ValueError("k must be positive")
+    _ranking(ranked, k)
+
+    if any(isinstance(g, bool) or not isinstance(g, int) or g < 0 for g in grades.values()):
+        raise ValueError("grades must be nonnegative integers")
+    maximum = max(grades.values(), default=0)
+    def gain(grade: int) -> float:
+        if maximum <= 100:
+            return 2.0 ** grade - 1.0
+        delta = grade - maximum
+        return (0.0 if delta < -1074 else 2.0 ** delta) - (0.0 if maximum > 1074 else 2.0 ** (-maximum))
 
     def dcg(doc_ids: list[str]) -> float:
         return sum(
-            (2.0 ** grades.get(doc_id, 0) - 1.0) / math.log2(position + 1)
+            gain(grades.get(doc_id, 0)) / math.log2(position + 1)
             for position, doc_id in enumerate(doc_ids, 1)
         )
 

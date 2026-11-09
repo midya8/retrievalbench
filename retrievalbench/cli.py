@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from pathlib import Path
 
 from . import __version__
 from .bm25 import BM25Index
-from .corpus import chunk_documents, load_documents, load_qrels, load_queries
+from .corpus import chunk_documents, chunk_records, load_documents, load_qrels, load_queries
 from .metrics import evaluate_run
 from .report import render_markdown, render_terminal
 
@@ -16,12 +17,20 @@ GATE_METRICS = ("recall", "precision", "ndcg", "mrr")
 def _build_index(args) -> tuple[BM25Index, int]:
     documents = load_documents(args.corpus)
     if args.chunk_tokens:
-        documents = chunk_documents(documents, max_tokens=args.chunk_tokens, overlap=args.chunk_overlap)
+        records = chunk_records(documents, max_tokens=args.chunk_tokens, overlap=args.chunk_overlap)
+        args.parent_map = {r["id"]:r["parent"] for r in records}
+        documents = [(r["id"],r["text"]) for r in records]
+    if args.k <= 0:
+        raise ValueError("k must be positive")
     return BM25Index(documents, k1=args.k1, b=args.b), len(documents)
 
 
 def cmd_evaluate(args) -> int:
     try:
+        for label in GATE_METRICS:
+            gate = getattr(args, "min_"+label)
+            if gate is not None and (not math.isfinite(gate) or gate < 0):
+                raise ValueError("gates must be finite and nonnegative")
         index, corpus_size = _build_index(args)
         queries = load_queries(args.queries)
         qrels = load_qrels(args.qrels)
@@ -37,7 +46,7 @@ def cmd_evaluate(args) -> int:
             seen: set[str] = set()
             collapsed = []
             for doc_id in ranked:
-                parent = doc_id.split("#c", 1)[0]
+                parent = args.parent_map[doc_id]
                 if parent not in seen:
                     seen.add(parent)
                     collapsed.append(parent)
@@ -91,6 +100,18 @@ def cmd_search(args) -> int:
     return 0
 
 
+def cmd_audit(args) -> int:
+    from .audit import audit, load_spec
+    try:
+        result = audit(load_spec(args.spec))
+        Path(args.json).write_text(json.dumps(result,indent=2,sort_keys=True)+"\n",encoding="utf-8")
+    except (ValueError, OSError) as exc:
+        print(f"ERROR {exc}")
+        return 2
+    print(f"audited {len(result['units'])} units, {len(result['terms'])} query terms")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="retrievalbench", description="Offline retrieval evaluation with exact BM25 and golden metrics.")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -114,6 +135,11 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate.add_argument("--min-ndcg", type=float, help="exit 1 when nDCG@k falls below this gate")
     evaluate.add_argument("--min-mrr", type=float, help="exit 1 when MRR falls below this gate")
     evaluate.set_defaults(func=cmd_evaluate)
+
+    audit_parser = sub.add_parser("audit", help="complete BM25, parent budget and metric witnesses")
+    audit_parser.add_argument("--spec", required=True)
+    audit_parser.add_argument("--json", required=True)
+    audit_parser.set_defaults(func=cmd_audit)
 
     search = sub.add_parser("search", help="run one ad-hoc query against the corpus")
     add_index_flags(search)
