@@ -112,6 +112,31 @@ def cmd_audit(args) -> int:
     return 0
 
 
+def cmd_fuse(args) -> int:
+    from .fusion import fuse, load_spec
+    try:
+        result = fuse(load_spec(args.spec))
+        Path(args.json).write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    except (ValueError, OSError) as exc:
+        print(f"ERROR {exc}")
+        return 2
+    print(f"fused {len(result['sources'])} lists; {len(result['rows'])} candidates; {len(result['selected'])} selected")
+    return 0
+
+
+def cmd_fuse_search(args) -> int:
+    from .fusion import fuse_queries
+    try:
+        result = fuse_queries(load_documents(args.corpus), args.query, constant=args.constant,
+                              k=args.k, depth=args.depth, weights=args.weight, k1=args.k1, b=args.b)
+        Path(args.json).write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    except (ValueError, OSError) as exc:
+        print(f"ERROR {exc}")
+        return 2
+    print(f"fused {len(result['queries'])} explicit BM25 query variants; selected {len(result['fusion']['selected'])}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="retrievalbench", description="Offline retrieval evaluation with exact BM25 and golden metrics.")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -140,6 +165,23 @@ def build_parser() -> argparse.ArgumentParser:
     audit_parser.add_argument("--spec", required=True)
     audit_parser.add_argument("--json", required=True)
     audit_parser.set_defaults(func=cmd_audit)
+
+    fusion = sub.add_parser("fuse", help="exact weighted reciprocal rank fusion of supplied lists")
+    fusion.add_argument("--spec", required=True)
+    fusion.add_argument("--json", required=True)
+    fusion.set_defaults(func=cmd_fuse)
+
+    fused_search = sub.add_parser("fuse-search", help="original exhaustive BM25 query variants, then exact rank fusion")
+    fused_search.add_argument("--corpus", required=True)
+    fused_search.add_argument("--query", action="append", required=True, help="explicit query variant; repeat 1..8 times")
+    fused_search.add_argument("--weight", type=int, action="append", help="integer weight per query, or omit all for equal weights")
+    fused_search.add_argument("--constant", type=int, default=60)
+    fused_search.add_argument("--depth", type=int, default=10)
+    fused_search.add_argument("-k", type=int, default=10)
+    fused_search.add_argument("--k1", type=float, default=1.5)
+    fused_search.add_argument("--b", type=float, default=.75)
+    fused_search.add_argument("--json", required=True)
+    fused_search.set_defaults(func=cmd_fuse_search)
 
     search = sub.add_parser("search", help="run one ad-hoc query against the corpus")
     add_index_flags(search)
