@@ -10,3 +10,4 @@ python -m venv "$OUT/env"
 "$OUT/env/bin/python" -m pip -q install "$OUT"/wheel/*.whl
 cd "$OUT"
 "$OUT/env/bin/python" "$ROOT/tools/verify_installed.py" "$ROOT/docs/audit.json" "$ROOT"
+"$OUT/env/bin/python" "$ROOT/tools/verify_fusion_installed.py" "$ROOT"
