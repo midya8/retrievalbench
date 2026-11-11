@@ -1,0 +1,29 @@
+{
+  "schema": "retrievalbench-rrf/v1",
+  "constant": 60,
+  "k": 3,
+  "lists": [
+    {
+      "id": "s1",
+      "weight": 1,
+      "depth": 4,
+      "ranking": [
+        "a",
+        "b",
+        "c",
+        "d"
+      ]
+    },
+    {
+      "id": "s2",
+      "weight": 1,
+      "depth": 4,
+      "ranking": [
+        "a",
+        "c",
+        "b",
+        "d"
+      ]
+    }
+  ]
+}
