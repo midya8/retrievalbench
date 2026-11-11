@@ -4,6 +4,20 @@ A cutoff is a policy. Inspect every BM25 term contribution, chunk/parent decisio
 
 [Live retrieval inspector](https://midya8.github.io/retrievalbench/) · [Evidence contract, sources and limits](EVIDENCE.md) · [Original README](docs/original-readme.md)
 
+## Exact multi-ranking fusion
+
+[Open the rank-fusion inspector](https://midya8.github.io/retrievalbench/fusion.html) · [RRF contract and prior work](FUSION.md)
+
+New opt-in `fuse` and `fuse-search` commands add standard weighted reciprocal rank fusion. The latter runs the original exhaustive BM25 index on explicit query variants before fusing their prefixes. Every candidate/source fraction, missing or beyond-depth rank, repeated vote, zero-weight candidate and exact cutoff tie stays visible. Python Fraction and independent BigInt replay all 230 complete reports exactly. This is rank arithmetic, not a new algorithm or evidence of relevance improvement. Existing BM25 commands remain unchanged.
+
+```bash
+python -m retrievalbench fuse --spec examples/fusion.json --json fusion.json
+python -m retrievalbench fuse-search --corpus examples/data/corpus.jsonl \
+  --query 'bread yeast' --query 'fermentation' --depth 3 -k 3 --json fused.json
+```
+
+80 Python tests retain all 68 existing tests. Seven Node/actual-Chrome tests retain all three existing tests. Includes 432 exhaustive rank controls, 200 conservation/order/scaling controls, 100 real-BM25 pipeline comparisons, 230 full native/browser reports and isolated installed-wheel reproduction. [Full bounds, reproducible counts and limits](FUSION.md).
+
 ## Complete arithmetic, not a relevance oracle
 
 The original CLI builds an exhaustive BM25 index over JSONL documents, evaluates golden queries against graded judgments and gates precision/recall/MRR/nDCG. A new bounded audit exposes the complete ranked list, query-term contributions, corpus statistics, token windows, parent collapse and per-rank/ideal DCG rows. Independent scalar JavaScript recomputes the entire report in an editable static inspector; no API, model or stored-score lookup.
@@ -26,7 +40,7 @@ Data remains JSONL: corpus/query records have id/text; qrels have query_id/doc_i
 
 ## Verified and preserved
 
-- 68 Python tests retain all 42 originals. 35 complete reports include all six original queries under whole/chunk indexing and 23 explicit controls.
+- The original BM25 release: 68 Python tests retain all 42 originals. 35 complete reports include all six original queries under whole/chunk indexing and 23 explicit controls.
 - Independent JavaScript compares 27,694 numeric and 12,052 other scalar values. Three Node/actual-Chrome tests check every ranked unit, contribution/metric row, source text, both policies, edits/export and 320/390/1280 containment.
 - Python 3.10-3.13 regeneration and isolated installed-wheel verification with eight module origins.
 - Original corpus, queries, qrels, demo and tests unchanged; original whole/chunked evaluation JSON remains byte-identical. Hashes and original artifacts are retained under docs/.
