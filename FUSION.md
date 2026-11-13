@@ -4,7 +4,7 @@ This is standard weighted reciprocal rank fusion (RRF), not a new algorithm, tra
 
 [Local inspector](https://midya8.github.io/retrievalbench/fusion.html) · [Source](https://github.com/midya8/retrievalbench)
 
-## Two actual workflows
+## Supplied rankings and BM25 query variants
 
 ```bash
 # Explicit ranked lists, with strict JSON loading and exact rational output.
