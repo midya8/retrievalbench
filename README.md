@@ -26,7 +26,9 @@ python -m retrievalbench fuse-search --corpus examples/data/corpus.jsonl \
   --query 'bread yeast' --query 'fermentation' --depth 3 -k 3 --json fused.json
 ```
 
-The current suite has 80 Python tests, including all 68 earlier tests, and seven Node/actual-Chrome tests, including all three earlier tests. These checks cover 432 exhaustive rank controls, 200 conservation/order/scaling controls, 100 real-BM25 pipeline comparisons, 230 full native/browser reports and isolated installed-wheel reproduction. [Full bounds, reproducible counts and limits](FUSION.md).
+The current suite has 83 Python tests, including all 68 earlier tests, and seven Node/actual-Chrome tests, including all three earlier tests. These checks cover 432 exhaustive rank controls, 200 conservation/order/scaling controls, 100 real-BM25 pipeline comparisons, 230 full native/browser reports and isolated installed-wheel reproduction. [Full bounds, reproducible counts and limits](FUSION.md).
+
+Weight-splitting regressions add 165 full ranking/cutoff comparisons. Splitting one list's integer weight between identical rankings preserves its total contribution; duplicating the vote without splitting can change the winner. A zero-weight prefix can still add a candidate, as the stated candidate policy requires. These are arithmetic checks, not relevance tests.
 
 ## BM25 and parent-selection audits
 
